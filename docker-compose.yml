@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/usr/src/app/
+    ports:
+      - 1337:8000
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=django-insecure-hxpr+c41@j=$urj#60u47_)3-yzcita^%3ern_5b*8esl_f@u9
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+    depends_on:
+      - redis
+  redis:
+    image: redis:alpine
+  celery:
+    build: .
+    command: celery -A weatherpy worker --loglevel=info
+    volumes:
+      - .:/usr/src/app/
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=django-insecure-hxpr+c41@j=$urj#60u47_)3-yzcita^%3ern_5b*8esl_f@u9
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+    depends_on:
+      - redis
+      - web
+  celery-beat:
+    build: .
+    command: celery -A weatherpy beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/usr/src/app/
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=django-insecure-hxpr+c41@j=$urj#60u47_)3-yzcita^%3ern_5b*8esl_f@u9
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1 [::1]
+    depends_on:
+      - redis
+      - web
+      - celery
